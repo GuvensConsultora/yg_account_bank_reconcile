@@ -1,7 +1,7 @@
 # Yagüven C.G. — Licencia LGPL-3.
 {
     'name': 'Conciliación bancaria',
-    'version': '20.0.1.2.0',
+    'version': '20.0.2.0.0',
     'summary': 'Concilia los movimientos del extracto con facturas, pagos, cheques o cuentas (Odoo 20 Community)',
     'description': """
 Conciliación bancaria
@@ -24,6 +24,13 @@ Odoo 20 Community trae las piezas de base pero no la pantalla de conciliación.
         'views/yg_conciliar_views.xml',
         'views/account_bank_statement_line_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'yg_account_bank_reconcile/static/src/conciliacion/conciliacion.js',
+            'yg_account_bank_reconcile/static/src/conciliacion/conciliacion.xml',
+            'yg_account_bank_reconcile/static/src/conciliacion/conciliacion.scss',
+        ],
+    },
     'installable': True,
     'application': False,
 }

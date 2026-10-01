@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Yagüven C.G. — Licencia LGPL-3.
+     Estados: ▲ pendiente (naranja) · ● conciliado (azul) · ▶ el elegido. Siempre símbolo + texto, nunca sólo color. -->
+<templates xml:space="preserve">
+
+    <t t-name="yaguven_bank_reconcile.Conciliacion">
+        <div class="o_action yg_conc">
+            <ControlPanel>
+                <t t-set-slot="control-panel-buttons">
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-primary" t-on-click="this.aplicarReglas">Aplicar reglas</button>
+                        <button class="btn btn-secondary" t-on-click="this.importarExtracto">Importar extracto</button>
+                        <button class="btn btn-secondary" t-on-click="this.verLista">Ver como lista</button>
+                    </div>
+                </t>
+            </ControlPanel>
+
+            <div class="yg_conc_barra">
+                <span class="yg_tag yg_pend">▲ <t t-out="this.state.pendientes"/> pendientes</span>
+                <span class="yg_tag yg_ok">● <t t-out="this.state.conciliados"/> conciliados</span>
+                <div class="btn-group btn-group-sm ms-3" role="group">
+                    <button class="btn" t-att-class="this.state.filtro === 'pendientes' ? 'btn-dark' : 'btn-outline-secondary'"
+                            t-on-click="() => this.cambiarFiltro('pendientes')">Pendientes</button>
+                    <button class="btn" t-att-class="this.state.filtro === 'conciliados' ? 'btn-dark' : 'btn-outline-secondary'"
+                            t-on-click="() => this.cambiarFiltro('conciliados')">Conciliados</button>
+                    <button class="btn" t-att-class="this.state.filtro === 'todos' ? 'btn-dark' : 'btn-outline-secondary'"
+                            t-on-click="() => this.cambiarFiltro('todos')">Todos</button>
+                </div>
+                <input class="form-control form-control-sm yg_buscar_mov" placeholder="Buscar concepto, comprobante o contacto"
+                       t-model.proxy="this.state.texto" t-on-keydown="(ev) => ev.key === 'Enter' and this.buscarMovimientos()"/>
+            </div>
+
+            <div class="yg_conc_cuerpo">
+                <!-- Izquierda: movimientos del banco -->
+                <div class="yg_conc_lista">
+                    <div class="yg_conc_titulo">Movimientos del banco · <t t-out="this.state.journal.name"/></div>
+                    <div t-if="!this.state.lineas.length" class="yg_vacio">No hay movimientos con este filtro.</div>
+                    <t t-foreach="this.state.lineas" t-as="l" t-key="l.id">
+                        <div class="yg_mov" t-att-class="{'yg_mov_actual': l.id === this.state.actualId, 'yg_mov_ok': l.conciliado}"
+                             t-on-click="() => this.elegir(l.id)">
+                            <div class="yg_mov_l1">
+                                <span class="yg_estado" t-att-class="l.conciliado ? 'yg_ok' : 'yg_pend'"
+                                      t-att-title="l.conciliado ? 'Conciliado' : 'Pendiente'">
+                                    <t t-if="l.id === this.state.actualId">▸</t>
+                                    <t t-elif="l.conciliado">●</t>
+                                    <t t-else="">▲</t>
+                                </span>
+                                <span class="yg_mov_fecha" t-out="this.fecha(l.fecha)"/>
+                                <span class="yg_mov_concepto" t-out="l.concepto"/>
+                                <span class="yg_mov_monto" t-att-class="l.monto &lt; 0 ? 'yg_neg' : 'yg_pos'" t-out="this.money(l.monto)"/>
+                            </div>
+                            <div class="yg_mov_l2">
+                                <t t-if="l.conciliado">conciliado<t t-if="l.resumen"> · <t t-out="l.resumen"/></t></t>
+                                <t t-else="">pendiente<t t-if="l.comprobante"> · comp. <t t-out="l.comprobante"/></t></t>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- Derecha: trabajo sobre el movimiento elegido -->
+                <div class="yg_conc_trabajo">
+                    <div t-if="!this.state.actual" class="yg_vacio yg_vacio_grande">Elegí un movimiento de la izquierda.</div>
+                    <t t-if="this.state.actual">
+                        <div class="yg_cab">
+                            <div class="yg_cab_desc">
+                                <t t-out="this.fecha(this.state.actual.fecha)"/> · <strong t-out="this.state.actual.concepto"/>
+                                <t t-if="this.state.actual.comprobante"> · comp. <t t-out="this.state.actual.comprobante"/></t>
+                                <t t-if="this.state.actual.contacto"> · <t t-out="this.state.actual.contacto"/></t>
+                            </div>
+                            <div class="yg_totales">
+                                <div><span class="yg_lbl">Banco</span><span class="yg_num" t-out="this.money(this.state.actual.monto)"/></div>
+                                <div t-if="!this.state.actual.conciliado"><span class="yg_lbl">Asignado</span><span class="yg_num" t-out="this.money(this.asignado)"/></div>
+                                <div t-if="!this.state.actual.conciliado">
+                                    <span class="yg_lbl">Falta</span>
+                                    <span class="yg_num" t-att-class="this.cuadra ? 'yg_ok' : 'yg_pend'">
+                                        <t t-if="this.cuadra">✓ Cuadra</t>
+                                        <t t-else="">▲ <t t-out="this.money(this.falta)"/></t>
+                                    </span>
+                                </div>
+                            </div>
+                            <div t-if="!this.state.actual.conciliado" class="yg_barra" title="Asignado sobre el importe del banco">
+                                <div class="yg_barra_relleno" t-att-class="this.cuadra ? 'yg_barra_ok' : ''"
+                                     t-att-style="'width:' + this.porcentaje + '%'"/>
+                            </div>
+                        </div>
+
+                        <!-- Ya conciliado -->
+                        <div t-if="this.state.actual.conciliado" class="yg_bloque">
+                            <div class="yg_ok yg_grande">● Conciliado</div>
+                            <div class="text-muted" t-out="this.state.actual.resumen"/>
+                            <button class="btn btn-secondary mt-3" t-on-click="this.deshacer">Deshacer conciliación</button>
+                        </div>
+
+                        <t t-if="!this.state.actual.conciliado">
+                            <div class="yg_seccion">Sugerencias <span class="text-muted">(clic para sumar o quitar)</span></div>
+                            <div t-if="!this.sugerenciasVisibles.length" class="yg_vacio">
+                                Ninguna partida pendiente coincide en importe ni en contacto.
+                                <t t-if="this.ocultas"> Podés ver las demás o buscar abajo.</t>
+                            </div>
+                            <div class="yg_tarjetas">
+                                <t t-foreach="this.sugerenciasVisibles" t-as="p" t-key="p.aml_id">
+                                    <t t-call="yaguven_bank_reconcile.Tarjeta"/>
+                                </t>
+                            </div>
+                            <button t-if="this.ocultas" class="btn btn-sm btn-link px-0 mt-1"
+                                    t-on-click="() => this.state.verTodas = true">Mostrar otras <t t-out="this.ocultas"/> partidas pendientes</button>
+
+                            <div class="yg_seccion">Buscar otra partida</div>
+                            <div class="d-flex gap-2">
+                                <input class="form-control" placeholder="Comprobante, contacto o etiqueta"
+                                       t-model.proxy="this.state.buscar" t-on-keydown="(ev) => ev.key === 'Enter' and this.buscarPartidas()"/>
+                                <button class="btn btn-secondary" t-on-click="this.buscarPartidas">Buscar</button>
+                            </div>
+                            <div class="yg_tarjetas" t-if="this.state.resultados.length">
+                                <t t-foreach="this.state.resultados" t-as="p" t-key="'r' + p.aml_id">
+                                    <t t-call="yaguven_bank_reconcile.Tarjeta"/>
+                                </t>
+                            </div>
+
+                            <div t-if="this.elegidasLista.length" class="yg_seccion">Partidas elegidas</div>
+                            <t t-foreach="this.elegidasLista" t-as="par" t-key="par[0]">
+                                <div class="yg_elegida">
+                                    <span class="yg_ok">✓</span>
+                                    <span class="flex-grow-1"><t t-out="par[1].datos.comprobante"/> · <t t-out="par[1].datos.contacto"/></span>
+                                    <span class="text-muted">pendiente <t t-out="this.money(par[1].datos.pendiente)"/></span>
+                                    <input type="number" step="0.01" class="form-control form-control-sm yg_importe" t-model.proxy="par[1].importe"/>
+                                </div>
+                            </t>
+
+                            <div class="yg_seccion">
+                                A cuenta <span class="text-muted">(impuesto al cheque, comisiones, intereses…)</span>
+                                <span t-if="this.state.regla" class="yg_tag yg_ok ms-2">● regla: <t t-out="this.state.regla"/></span>
+                            </div>
+                            <datalist id="yg_cuentas">
+                                <t t-foreach="this.state.cuentas" t-as="c" t-key="c.id"><option t-att-value="c.name"/></t>
+                            </datalist>
+                            <t t-foreach="this.state.renglones" t-as="r" t-key="r_index">
+                                <div class="yg_renglon">
+                                    <input class="form-control form-control-sm yg_cuenta" list="yg_cuentas" placeholder="Cuenta"
+                                           t-att-value="r.account_name" t-on-change="(ev) => this.elegirCuenta(r, ev.target.value)"/>
+                                    <input class="form-control form-control-sm" placeholder="Etiqueta" t-model.proxy="r.name"/>
+                                    <input type="number" step="0.01" class="form-control form-control-sm yg_importe" t-model.proxy="r.importe"/>
+                                    <button class="btn btn-sm btn-link text-muted" title="Quitar" t-on-click="() => this.quitarRenglon(r_index)">✕</button>
+                                </div>
+                            </t>
+                            <button class="btn btn-sm btn-secondary mt-1" t-on-click="this.agregarRenglon">+ Agregar renglón</button>
+
+                            <div class="yg_seccion">Observaciones <span class="text-muted">(quedan en el historial)</span></div>
+                            <textarea class="form-control" rows="2" t-model.proxy="this.state.observacion"
+                                      placeholder="Ej.: cheque 1234 de Roberto Frenos, entregado el 15/09"/>
+
+                            <div class="yg_acciones">
+                                <button class="btn btn-primary btn-lg" t-att-disabled="!this.cuadra or this.state.ocupado"
+                                        t-on-click="this.conciliar">Conciliar y siguiente →</button>
+                                <span t-if="!this.cuadra" class="yg_pend">▲ Falta asignar <t t-out="this.money(this.falta)"/></span>
+                                <span t-else="" class="yg_ok">✓ Listo para conciliar (Enter)</span>
+                            </div>
+                        </t>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="yaguven_bank_reconcile.Tarjeta">
+        <div class="yg_tarjeta" t-att-class="{'yg_tarjeta_usada': this.esElegida(p.aml_id), 'yg_tarjeta_igual': p.mismo_importe}"
+             t-on-click="() => this.alternarPartida(p)">
+            <div class="yg_tarjeta_sup">
+                <span t-if="p.mismo_importe" class="yg_tag yg_ok">≡ MISMO IMPORTE</span>
+                <span class="ms-auto yg_tarjeta_estado">
+                    <t t-if="this.esElegida(p.aml_id)">✓ Usada</t><t t-else="">+ Usar</t>
+                </span>
+            </div>
+            <div class="yg_tarjeta_titulo"><t t-out="p.comprobante"/></div>
+            <div class="yg_tarjeta_linea" t-if="p.contacto" t-out="p.contacto"/>
+            <div class="yg_tarjeta_linea text-muted" t-out="p.cuenta"/>
+            <div class="yg_tarjeta_pie">
+                <span class="text-muted"><t t-if="p.vencimiento">vence <t t-out="this.fecha(p.vencimiento)"/></t></span>
+                <strong t-out="this.money(p.pendiente)"/>
+            </div>
+        </div>
+    </t>
+
+</templates>

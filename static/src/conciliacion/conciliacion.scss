@@ -1,0 +1,99 @@
+// Yagüven C.G. — Licencia LGPL-3.
+// Par seguro para daltonismo: azul (conciliado / ok) y naranja (pendiente). Siempre con símbolo y texto.
+.yg_conc {
+    --yg-azul: #1f6fb2;
+    --yg-azul-suave: #e7f1fa;
+    --yg-naranja: #c25e00;
+    --yg-naranja-suave: #fdf0e3;
+    --yg-borde: #dfe3e8;
+    --yg-fondo: #f7f8fa;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--yg-fondo);
+
+    .yg_ok { color: var(--yg-azul); }
+    .yg_pend { color: var(--yg-naranja); }
+    .yg_tag {
+        display: inline-block; font-size: .8rem; font-weight: 600; padding: .1rem .5rem;
+        border-radius: 1rem; background: #fff; border: 1px solid currentColor;
+    }
+
+    .yg_conc_barra {
+        display: flex; align-items: center; gap: .5rem; padding: .5rem 1rem;
+        background: #fff; border-bottom: 1px solid var(--yg-borde);
+        .yg_buscar_mov { max-width: 22rem; margin-left: auto; }
+    }
+
+    .yg_conc_cuerpo { flex: 1; display: flex; min-height: 0; }
+
+    .yg_conc_lista {
+        width: 38%; min-width: 22rem; overflow-y: auto; background: #fff; border-right: 1px solid var(--yg-borde);
+    }
+    .yg_conc_titulo {
+        position: sticky; top: 0; z-index: 1; background: #fff; padding: .6rem 1rem; font-weight: 600;
+        text-transform: uppercase; font-size: .8rem; letter-spacing: .03em; color: #555; border-bottom: 1px solid var(--yg-borde);
+    }
+    .yg_mov {
+        padding: .55rem 1rem; border-bottom: 1px solid #f0f1f3; cursor: pointer;
+        &:hover { background: var(--yg-fondo); }
+        &.yg_mov_actual { background: var(--yg-azul-suave); box-shadow: inset 4px 0 0 var(--yg-azul); }
+        .yg_mov_l1 { display: flex; gap: .5rem; align-items: baseline; }
+        .yg_estado { width: 1rem; text-align: center; font-weight: 700; }
+        .yg_mov_fecha { color: #666; font-size: .85rem; white-space: nowrap; }
+        .yg_mov_concepto { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .yg_mov_monto { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+        .yg_neg { color: #333; }
+        .yg_pos { color: var(--yg-azul); }
+        .yg_mov_l2 { margin-left: 1.5rem; font-size: .78rem; color: #777; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    }
+
+    .yg_conc_trabajo { flex: 1; overflow-y: auto; padding: 1rem 1.25rem 2rem; }
+
+    .yg_cab {
+        position: sticky; top: -1rem; z-index: 2; box-shadow: 0 2px 6px rgba(0, 0, 0, .06);
+        background: #fff; border: 1px solid var(--yg-borde); border-radius: .5rem; padding: .9rem 1rem; margin-bottom: 1rem;
+        .yg_cab_desc { font-size: 1rem; margin-bottom: .6rem; }
+        .yg_totales { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .yg_lbl { display: block; font-size: .75rem; text-transform: uppercase; color: #777; }
+        .yg_num { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    }
+    .yg_barra {
+        margin-top: .7rem; height: .55rem; border-radius: 1rem; background: var(--yg-naranja-suave); overflow: hidden;
+        .yg_barra_relleno { height: 100%; background: var(--yg-naranja); transition: width .2s; }
+        .yg_barra_ok { background: var(--yg-azul); }
+    }
+
+    .yg_seccion {
+        margin: 1.1rem 0 .5rem; font-weight: 600; text-transform: uppercase; font-size: .8rem; letter-spacing: .03em; color: #444;
+        .text-muted { text-transform: none; font-weight: 400; letter-spacing: 0; }
+    }
+
+    .yg_tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .6rem; }
+    .yg_tarjeta {
+        background: #fff; border: 1px solid var(--yg-borde); border-radius: .5rem; padding: .6rem .75rem; cursor: pointer;
+        transition: border-color .15s, box-shadow .15s;
+        &:hover { border-color: var(--yg-azul); box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+        &.yg_tarjeta_igual { border-width: 2px; border-color: var(--yg-azul); }
+        &.yg_tarjeta_usada { background: var(--yg-azul-suave); border-color: var(--yg-azul); }
+        .yg_tarjeta_sup { display: flex; align-items: center; min-height: 1.4rem; }
+        .yg_tarjeta_estado { font-size: .8rem; font-weight: 600; color: var(--yg-azul); }
+        .yg_tarjeta_titulo { font-weight: 600; margin-top: .2rem; }
+        .yg_tarjeta_linea { font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .yg_tarjeta_pie { display: flex; justify-content: space-between; margin-top: .35rem; font-variant-numeric: tabular-nums; }
+    }
+
+    .yg_elegida, .yg_renglon {
+        display: flex; gap: .5rem; align-items: center; background: #fff; border: 1px solid var(--yg-borde);
+        border-radius: .4rem; padding: .35rem .6rem; margin-bottom: .35rem;
+    }
+    .yg_elegida .yg_importe, .yg_renglon .yg_importe { flex: 0 0 9rem; width: 9rem; text-align: right; }
+    .yg_renglon input { flex: 1 1 0; min-width: 0; }
+    .yg_renglon input.yg_cuenta { flex: 2 1 0; }
+
+    .yg_acciones { display: flex; align-items: center; gap: 1rem; margin-top: 1.2rem; font-weight: 600; }
+    .yg_bloque { background: #fff; border: 1px solid var(--yg-borde); border-radius: .5rem; padding: 1rem; }
+    .yg_grande { font-size: 1.2rem; font-weight: 700; }
+    .yg_vacio { color: #888; padding: 1rem; }
+    .yg_vacio_grande { font-size: 1.1rem; text-align: center; padding-top: 4rem; }
+}
