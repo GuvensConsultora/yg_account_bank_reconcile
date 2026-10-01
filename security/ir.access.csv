@@ -1,0 +1,4 @@
+id,name,model_id,group_id/id,operation,domain
+access_yg_conciliar_user,yg.conciliar usuario contable,yg.conciliar,account.group_account_user,crud,
+access_yg_conciliar_partida_user,yg.conciliar.partida usuario contable,yg.conciliar.partida,account.group_account_user,crud,
+access_yg_conciliar_cuenta_user,yg.conciliar.cuenta usuario contable,yg.conciliar.cuenta,account.group_account_user,crud,
