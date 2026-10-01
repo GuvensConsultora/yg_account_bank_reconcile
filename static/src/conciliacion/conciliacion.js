@@ -235,12 +235,23 @@ export class YgConciliacionBancaria extends Component {
     }
 
     async importarExtracto() {
+        let accion;
         try {
-            const accion = await this.orm.call("account.journal", "action_yg_import_statement", [[this.state.journalId]]);
-            await this.actionService.doAction(accion, { onClose: () => this.cargar() });
-        } catch {
-            this.notification.add("Para importar desde acá hace falta «Importación de extractos bancarios».", { type: "warning" });
+            accion = await this.orm.call("account.journal", "action_yg_import_statement", [[this.state.journalId]]);
+        } catch (error) {
+            // El método no existe si no está instalado «Importación de extractos bancarios».
+            const sinModulo = String(error?.data?.message || error?.message || "").includes("action_yg_import_statement");
+            if (sinModulo) {
+                this.notification.add("Para importar desde acá hace falta el módulo «Importación de extractos bancarios».", { type: "warning" });
+                return;
+            }
+            throw error;
         }
+        // Un act_window armado en Python trae view_mode pero no `views`; doAction lo exige.
+        if (accion && !accion.views) {
+            accion.views = (accion.view_mode || "form").split(",").map((modo) => [false, modo.trim()]);
+        }
+        await this.actionService.doAction(accion, { onClose: () => this.cargar() });
     }
 
     verLista() {
