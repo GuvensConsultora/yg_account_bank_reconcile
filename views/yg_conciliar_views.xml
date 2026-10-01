@@ -53,6 +53,8 @@
                         <field name="importe" sum="Total"/>
                     </list>
                 </field>
+                <separator string="Observaciones (quedan en el historial)"/>
+                <field name="observacion" nolabel="1" placeholder="Ej.: cheque 1234 de Roberto Frenos, entregado el 15/09"/>
                 <footer>
                     <button string="Conciliar" name="action_conciliar" type="object" class="btn-primary"/>
                     <button string="Conciliar y siguiente" name="action_conciliar_y_siguiente" type="object" class="btn-primary"/>

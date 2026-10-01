@@ -1,7 +1,7 @@
 # Yagüven C.G. — Licencia LGPL-3.
 {
     'name': 'Conciliación bancaria',
-    'version': '20.0.1.1.0',
+    'version': '20.0.1.2.0',
     'summary': 'Concilia los movimientos del extracto con facturas, pagos, cheques o cuentas (Odoo 20 Community)',
     'description': """
 Conciliación bancaria

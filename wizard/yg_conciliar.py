@@ -27,6 +27,8 @@ class YgConciliar(models.TransientModel):
 
     regla_id = fields.Many2one("account.reconcile.model", string="Regla aplicada", readonly=True,
                                help="Modelo de conciliación que precargó los renglones a cuenta.")
+    observacion = fields.Text(string="Observaciones",
+                              help="Queda en el historial del asiento del banco y de cada comprobante conciliado.")
     asignado = fields.Monetary(compute="_compute_asignado", string="Asignado")
     falta = fields.Monetary(compute="_compute_asignado", string="Falta asignar")
 
@@ -80,6 +82,7 @@ class YgConciliar(models.TransientModel):
             partidas=[(p.aml_id, p.importe) for p in self.partida_ids if p.seleccionar and p.importe],
             imputaciones=[{"account_id": c.account_id.id, "importe": c.importe, "name": c.name,
                            "partner_id": c.partner_id.id} for c in self.cuenta_ids if c.importe],
+            observacion=self.observacion,
         )
         if siguiente:
             proxima = self._siguiente_pendiente()

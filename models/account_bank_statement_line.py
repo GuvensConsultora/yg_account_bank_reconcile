@@ -3,13 +3,16 @@ import re
 
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError
+from markupsafe import Markup
+
 from odoo.tools import float_compare, float_is_zero
+from odoo.tools.misc import formatLang, html_escape
 
 
 class AccountBankStatementLine(models.Model):
     _inherit = "account.bank.statement.line"
 
-    def yg_conciliar(self, partidas=None, imputaciones=None):
+    def yg_conciliar(self, partidas=None, imputaciones=None, observacion=None):
         """Concilia la línea del extracto: reemplaza la línea de la cuenta transitoria
         por las contrapartidas reales y concilia las partidas pendientes elegidas.
 
@@ -18,6 +21,8 @@ class AccountBankStatementLine(models.Model):
         :param imputaciones: [{"account_id": int, "importe": float, "name": str,
             "partner_id": int|False}] renglones a cuenta (impuesto al cheque, comisión…),
             importe en positivo; el signo lo pone el movimiento del banco.
+        :param observacion: texto libre; queda en el chatter del asiento del banco y de
+            cada comprobante conciliado, junto con el resumen de la conciliación.
 
         La suma de partidas e imputaciones tiene que ser igual al movimiento del banco
         al centavo; si no, no concilia nada. Es el mismo patrón que usa el nativo en
@@ -94,7 +99,29 @@ class AccountBankStatementLine(models.Model):
             linea = next(contra)
             if tipo == "partida":
                 (linea + aml).reconcile()
+        self._yg_nota_conciliacion(nuevas, observacion)
         return True
+
+    def _yg_nota_conciliacion(self, nuevas, observacion):
+        """Nota interna en el chatter (C.4: Markup, mt_note, comment, html_escape)."""
+        fmt = lambda v: html_escape(formatLang(self.env, abs(v), currency_obj=self.company_id.currency_id))
+        renglones = []
+        for tipo, aml, vals in nuevas:
+            if tipo == "partida":
+                renglones.append("<li>%s — %s</li>" % (html_escape(aml.move_id.display_name), fmt(vals["balance"])))
+            else:
+                cuenta = self.env["account.account"].browse(vals["account_id"])
+                renglones.append("<li>%s (%s) — %s</li>" % (html_escape(cuenta.display_name),
+                                                            html_escape(vals["name"] or ""), fmt(vals["balance"])))
+        cuerpo = ("<p><strong>Conciliación bancaria</strong> — %s · %s · %s</p><ul>%s</ul>"
+                  % (html_escape(self.journal_id.name), html_escape(self.date.strftime("%d/%m/%Y")),
+                     fmt(self.amount), "".join(renglones)))
+        if observacion and observacion.strip():
+            cuerpo += "<p><strong>Observaciones:</strong> %s</p>" % html_escape(observacion.strip()).replace("\n", Markup("<br/>"))
+        destinos = self.move_id | self.env["account.move"].browse(
+            {aml.move_id.id for tipo, aml, _v in nuevas if tipo == "partida"})
+        for mov in destinos:
+            mov.message_post(body=Markup(cuerpo), message_type="comment", subtype_xmlid="mail.mt_note")
 
     @api.model
     def yg_partidas_sugeridas(self, linea, limite=20):
