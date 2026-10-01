@@ -43,6 +43,8 @@ export class YgConciliacionBancaria extends Component {
             elegidas: {}, // aml_id -> {datos, importe}
             renglones: [], // {account_id, account_name, importe, name}
             regla: false,
+            reglaId: false,
+            detalle: false,
             buscar: "",
             resultados: [],
             observacion: "",
@@ -83,6 +85,8 @@ export class YgConciliacionBancaria extends Component {
         this.state.buscar = "";
         this.state.observacion = "";
         this.state.regla = false;
+        this.state.reglaId = false;
+        this.state.detalle = false;
         this.state.verTodas = false;
         if (!id) {
             this.state.actual = false;
@@ -92,8 +96,10 @@ export class YgConciliacionBancaria extends Component {
         const datos = await this.orm.call(MODELO, "yg_pantalla_linea", [id]);
         this.state.actual = datos.linea;
         this.state.sugerencias = datos.sugerencias;
+        this.state.detalle = datos.detalle;
         if (datos.regla) {
             this.state.regla = datos.regla.nombre;
+            this.state.reglaId = datos.regla.id;
             this.state.renglones = datos.regla.renglones.map((r) => ({ ...r }));
         }
     }
@@ -196,6 +202,7 @@ export class YgConciliacionBancaria extends Component {
             }));
             const proxima = await this.orm.call(MODELO, "yg_pantalla_conciliar", [
                 this.state.actualId, partidas, imputaciones, this.state.observacion,
+                this.state.renglones.length ? this.state.reglaId : false,
             ]);
             this.notification.add("Movimiento conciliado.", { type: "success" });
             await this.cargar(proxima || false);

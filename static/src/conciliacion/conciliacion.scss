@@ -92,6 +92,13 @@
     .yg_renglon input.yg_cuenta { flex: 2 1 0; }
 
     .yg_acciones { display: flex; align-items: center; gap: 1rem; margin-top: 1.2rem; font-weight: 600; }
+    .yg_detalle {
+        .yg_explica { margin: 0 0 .4rem; line-height: 1.45; }
+        .yg_tabla { background: #fff; margin-top: .3rem; font-variant-numeric: tabular-nums; }
+        .yg_tabla tfoot th { border-top: 2px solid var(--yg-borde); }
+        .yg_obs { background: var(--yg-fondo); border-left: 4px solid var(--yg-azul); padding: .5rem .75rem; white-space: pre-line; }
+        .yg_lbl { display: block; font-size: .75rem; text-transform: uppercase; color: #777; }
+    }
     .yg_bloque { background: #fff; border: 1px solid var(--yg-borde); border-radius: .5rem; padding: 1rem; }
     .yg_grande { font-size: 1.2rem; font-weight: 700; }
     .yg_vacio { color: #888; padding: 1rem; }

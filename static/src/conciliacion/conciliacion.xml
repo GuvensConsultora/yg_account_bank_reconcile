@@ -84,10 +84,41 @@
                             </div>
                         </div>
 
-                        <!-- Ya conciliado -->
-                        <div t-if="this.state.actual.conciliado" class="yg_bloque">
+                        <!-- Ya conciliado: cómo y por qué -->
+                        <div t-if="this.state.actual.conciliado" class="yg_bloque yg_detalle">
                             <div class="yg_ok yg_grande">● Conciliado</div>
-                            <div class="text-muted" t-out="this.state.actual.resumen"/>
+                            <t t-if="this.state.detalle">
+                                <div class="yg_seccion">Por qué</div>
+                                <t t-foreach="this.state.detalle.explicaciones" t-as="e" t-key="e_index">
+                                    <p class="yg_explica" t-out="e"/>
+                                </t>
+                                <div class="yg_seccion">Cómo se aplicó</div>
+                                <table class="table table-sm yg_tabla">
+                                    <thead><tr><th>Cuenta</th><th>Etiqueta</th><th>Comprobante</th>
+                                        <th class="text-end">% del movimiento</th><th class="text-end">Importe</th></tr></thead>
+                                    <tbody>
+                                        <t t-foreach="this.state.detalle.renglones" t-as="r" t-key="r_index">
+                                            <tr>
+                                                <td t-out="r.cuenta"/>
+                                                <td t-out="r.etiqueta"/>
+                                                <td><t t-if="r.documento" t-out="r.documento"/><t t-else="">—</t></td>
+                                                <td class="text-end"><t t-out="r.porcentaje"/>%</td>
+                                                <td class="text-end" t-out="this.money(r.importe)"/>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                    <tfoot><tr><th colspan="3">Total = movimiento del banco</th><th class="text-end">100%</th>
+                                        <th class="text-end" t-out="this.money(this.state.detalle.total)"/></tr></tfoot>
+                                </table>
+                                <div t-if="this.state.detalle.observacion" class="yg_obs">
+                                    <span class="yg_lbl">Observaciones</span>
+                                    <div t-out="this.state.detalle.observacion"/>
+                                </div>
+                                <div class="text-muted mt-2" t-if="this.state.detalle.por">
+                                    Conciliado por <t t-out="this.state.detalle.por"/> el <t t-out="this.state.detalle.cuando"/>.
+                                    El detalle queda también en el historial (chatter) del asiento.
+                                </div>
+                            </t>
                             <button class="btn btn-secondary mt-3" t-on-click="this.deshacer">Deshacer conciliación</button>
                         </div>
 

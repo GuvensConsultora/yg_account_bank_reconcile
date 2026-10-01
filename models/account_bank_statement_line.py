@@ -12,7 +12,16 @@ from odoo.tools.misc import formatLang, html_escape
 class AccountBankStatementLine(models.Model):
     _inherit = "account.bank.statement.line"
 
-    def yg_conciliar(self, partidas=None, imputaciones=None, observacion=None):
+    yg_conciliacion_obs = fields.Text(
+        string="Observaciones de la conciliación", copy=False, readonly=True,
+        help="Lo que se escribió al conciliar. El historial completo queda en el chatter.")
+
+    def action_undo_reconciliation(self):
+        res = super().action_undo_reconciliation()
+        self.write({"yg_conciliacion_obs": False})
+        return res
+
+    def yg_conciliar(self, partidas=None, imputaciones=None, observacion=None, regla=None):
         """Concilia la línea del extracto: reemplaza la línea de la cuenta transitoria
         por las contrapartidas reales y concilia las partidas pendientes elegidas.
 
@@ -23,6 +32,8 @@ class AccountBankStatementLine(models.Model):
             importe en positivo; el signo lo pone el movimiento del banco.
         :param observacion: texto libre; queda en el chatter del asiento del banco y de
             cada comprobante conciliado, junto con el resumen de la conciliación.
+        :param regla: account.reconcile.model que propuso los renglones a cuenta; se
+            guarda en `reconcile_model_id` de esos renglones para poder explicarlo después.
 
         La suma de partidas e imputaciones tiene que ser igual al movimiento del banco
         al centavo; si no, no concilia nada. Es el mismo patrón que usa el nativo en
@@ -69,6 +80,7 @@ class AccountBankStatementLine(models.Model):
             importe = moneda.round(imp["importe"])
             balance = -signo * importe
             nuevas.append(("cuenta", None, {
+                "reconcile_model_id": regla.id if regla else False,
                 "name": imp.get("name") or self.payment_ref,
                 "account_id": imp["account_id"],
                 "partner_id": imp.get("partner_id") or self.partner_id.id,
@@ -99,6 +111,7 @@ class AccountBankStatementLine(models.Model):
             linea = next(contra)
             if tipo == "partida":
                 (linea + aml).reconcile()
+        self.yg_conciliacion_obs = (observacion or "").strip() or False
         self._yg_nota_conciliacion(nuevas, observacion)
         return True
 
@@ -239,7 +252,7 @@ class AccountBankStatementLine(models.Model):
             if not imputaciones:
                 revisar += 1
                 continue
-            linea.yg_conciliar(imputaciones=imputaciones)
+            linea.yg_conciliar(imputaciones=imputaciones, regla=regla)
             aplicadas += 1
         return {
             "type": "ir.actions.client",
