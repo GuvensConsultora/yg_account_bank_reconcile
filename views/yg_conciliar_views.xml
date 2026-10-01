@@ -21,6 +21,7 @@
                         <field name="monto"/>
                         <field name="asignado"/>
                         <field name="falta" decoration-bf="1"/>
+                        <field name="regla_id" invisible="not regla_id"/>
                     </group>
                 </group>
                 <separator string="Partidas pendientes (tildá «Usar» en las que corresponden)"/>

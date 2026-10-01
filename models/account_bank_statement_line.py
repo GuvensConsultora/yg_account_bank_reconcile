@@ -1,4 +1,6 @@
 # Yagüven C.G. — Licencia LGPL-3.
+import re
+
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools import float_compare, float_is_zero
@@ -124,4 +126,101 @@ class AccountBankStatementLine(models.Model):
             "view_mode": "form",
             "target": "new",
             "context": {"default_st_line_id": self.id},
+        }
+
+    # ------------------------------------------------------------------
+    # Reglas automáticas: modelos de conciliación nativos (account.reconcile.model)
+    # ------------------------------------------------------------------
+    def _yg_regla_aplica(self, regla):
+        """¿La regla corresponde a esta línea? Diario, texto, importe y contacto."""
+        self.ensure_one()
+        if regla.match_journal_ids and self.journal_id not in regla.match_journal_ids:
+            return False
+        if regla.match_partner_ids and self.partner_id not in regla.match_partner_ids:
+            return False
+        texto = " ".join(filter(None, [self.payment_ref, self.ref])).lower()
+        param = (regla.match_label_param or "").lower()
+        if regla.match_label == "contains" and param not in texto:
+            return False
+        if regla.match_label == "not_contains" and param in texto:
+            return False
+        if regla.match_label == "match_regex" and not re.search(regla.match_label_param or "", texto, re.I):
+            return False
+        monto = abs(self.amount)
+        if regla.match_amount == "lower" and monto > regla.match_amount_max:
+            return False
+        if regla.match_amount == "greater" and monto < regla.match_amount_min:
+            return False
+        if regla.match_amount == "between" and not (regla.match_amount_min <= monto <= regla.match_amount_max):
+            return False
+        return True
+
+    def _yg_imputaciones_de_regla(self, regla):
+        """Renglones a cuenta que propone la regla. None si la regla no se puede usar
+        sola (impuestos en sus líneas, o no cubre el movimiento completo)."""
+        self.ensure_one()
+        moneda = self.company_id.currency_id
+        total = abs(self.amount)
+        renglones, asignado = [], 0.0
+        for rl in regla.line_ids.sorted("sequence"):
+            if rl.tax_ids:
+                return None  # v1: las reglas con impuestos se aplican a mano
+            if rl.amount_type == "fixed":
+                importe = rl.amount
+            elif rl.amount_type in ("percentage", "percentage_st_line"):
+                importe = total * rl.amount / 100.0
+            elif rl.amount_type == "regex":
+                m = re.search(rl.amount_string or "", self.payment_ref or "")
+                if not m:
+                    return None
+                importe = float(m.group(1).replace(".", "").replace(",", "."))
+            else:
+                return None
+            importe = moneda.round(min(importe, total - asignado))
+            if importe <= 0:
+                continue
+            asignado += importe
+            renglones.append({"account_id": rl.account_id.id, "importe": importe,
+                              "name": rl.label or regla.name, "partner_id": rl.partner_id.id})
+        if not renglones or not float_is_zero(total - asignado, precision_rounding=moneda.rounding):
+            return None
+        return renglones
+
+    def yg_regla_para(self):
+        """Primera regla de imputación a cuenta que corresponde a la línea, o vacío."""
+        self.ensure_one()
+        reglas = self.env["account.reconcile.model"].search([
+            ("company_id", "=", self.company_id.id), ("rule_type", "=", "reco_model"),
+        ], order="sequence, id")
+        for regla in reglas:
+            # Sin condición de texto la regla aplicaría a cualquier movimiento (como la
+            # «Internal Transfers» que trae Odoo): no se usa sola.
+            if regla.line_ids and regla.match_label and regla.match_label_param and self._yg_regla_aplica(regla):
+                return regla
+        return reglas.browse()
+
+    def yg_aplicar_reglas(self):
+        """Botón «Aplicar reglas»: concilia solas las líneas pendientes que cumplen una
+        regla marcada como automática. Las demás quedan para revisar a mano."""
+        aplicadas, revisar = 0, 0
+        for linea in self.filtered(lambda l: not l.is_reconciled):
+            regla = linea.yg_regla_para()
+            if not regla or regla.trigger != "auto_reconcile":
+                revisar += 1
+                continue
+            imputaciones = linea._yg_imputaciones_de_regla(regla)
+            if not imputaciones:
+                revisar += 1
+                continue
+            linea.yg_conciliar(imputaciones=imputaciones)
+            aplicadas += 1
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": "Reglas automáticas",
+                "message": "Conciliadas por regla: %s. Para revisar a mano: %s." % (aplicadas, revisar),
+                "type": "info",
+                "next": {"type": "ir.actions.client", "tag": "soft_reload"},
+            },
         }

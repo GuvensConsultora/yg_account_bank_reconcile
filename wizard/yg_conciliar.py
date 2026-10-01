@@ -25,6 +25,8 @@ class YgConciliar(models.TransientModel):
         help="Buscá una partida pendiente que no esté entre las sugeridas.")
     company_id = fields.Many2one(related="st_line_id.company_id")
 
+    regla_id = fields.Many2one("account.reconcile.model", string="Regla aplicada", readonly=True,
+                               help="Modelo de conciliación que precargó los renglones a cuenta.")
     asignado = fields.Monetary(compute="_compute_asignado", string="Asignado")
     falta = fields.Monetary(compute="_compute_asignado", string="Falta asignar")
 
@@ -36,6 +38,13 @@ class YgConciliar(models.TransientModel):
             vals["st_line_id"] = linea.id
             sugeridas = self.env["account.bank.statement.line"].yg_partidas_sugeridas(linea)
             vals["partida_ids"] = [fields.Command.create(self._valores_partida(aml)) for aml in sugeridas]
+            regla = linea.yg_regla_para()
+            imputaciones = regla and linea._yg_imputaciones_de_regla(regla)
+            if imputaciones:
+                vals["regla_id"] = regla.id
+                vals["cuenta_ids"] = [fields.Command.create({
+                    "account_id": i["account_id"], "importe": i["importe"], "name": i["name"],
+                    "partner_id": i["partner_id"]}) for i in imputaciones]
         return vals
 
     @api.model

@@ -8,6 +8,9 @@
         <field name="priority">90</field>
         <field name="arch" type="xml">
             <list string="Conciliación bancaria" create="0" edit="0" default_order="date, id">
+                <header>
+                    <button name="yg_aplicar_reglas" type="object" string="Aplicar reglas" class="btn-primary"/>
+                </header>
                 <field name="company_id" column_invisible="1"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="date"/>
@@ -56,6 +59,10 @@
             <p>Importá el extracto del banco desde el tablero y conciliá cada movimiento con su factura, pago o cuenta.</p>
         </field>
     </record>
+
+    <menuitem id="menu_yg_reconcile_models" name="Reglas de conciliación"
+              parent="account.account_account_menu" action="account.action_account_reconcile_model"
+              sequence="20" groups="account.group_account_manager"/>
 
     <menuitem id="menu_yg_bank_reconcile" name="Conciliación bancaria"
               parent="account.account_transactions_menu" action="action_yg_bank_reconcile"
